@@ -2,6 +2,7 @@ import subprocess
 import time
 import os
 import sys
+from scripts.utils import get_engine, log_job
 
 def run_command(command, cwd=None):
     print(f"Running: {command}")
@@ -13,6 +14,8 @@ def run_command(command, cwd=None):
     return True
 
 def main():
+    engine = get_engine()
+    
     # 1. Start Docker
     print("--- 1. Starting Infrastructure (Docker) ---")
     if not run_command("docker compose up -d"):
@@ -34,10 +37,10 @@ def main():
     
     if not ready:
         print("Database healthcheck timed out.")
-        # sys.exit(1) # Continue anyway, maybe it works
 
     # 3. Ingestion
     print("--- 3. Running Data Ingestion (Python) ---")
+    # Ingestion logs its own internal jobs
     if not run_command(f"{sys.executable} scripts/ingestion.py"):
         print("Ingestion failed.")
         sys.exit(1)
@@ -45,11 +48,22 @@ def main():
     # 4. dbt Transformation
     print("--- 4. Running dbt Transformations ---")
     dbt_dir = "dbt_project"
-    if not run_command("dbt run --profiles-dir .", cwd=dbt_dir):
+    
+    # dbt run
+    start_time = time.time()
+    if run_command("dbt run --profiles-dir .", cwd=dbt_dir):
+        log_job(engine, "dbt_run", "SUCCESS", start_time)
+    else:
+        log_job(engine, "dbt_run", "FAILED", start_time)
         print("dbt run failed.")
         sys.exit(1)
     
-    if not run_command("dbt test --profiles-dir .", cwd=dbt_dir):
+    # dbt test
+    start_time = time.time()
+    if run_command("dbt test --profiles-dir .", cwd=dbt_dir):
+        log_job(engine, "dbt_test", "SUCCESS", start_time)
+    else:
+        log_job(engine, "dbt_test", "FAILED", start_time)
         print("dbt tests failed.")
         sys.exit(1)
 
