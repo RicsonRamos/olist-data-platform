@@ -16,11 +16,18 @@ def run_command(command, cwd=None):
 def main():
     engine = get_engine()
     
-    # 1. Start Docker
+    # 1. Start Infrastructure (Docker)
     print("--- 1. Starting Infrastructure (Docker) ---")
-    if not run_command("docker compose up -d"):
-        print("Failed to start Docker. Make sure Docker Desktop is running.")
-        sys.exit(1)
+    max_retries = 3
+    for attempt in range(max_retries):
+        if run_command("docker compose up -d"):
+            break
+        if attempt < max_retries - 1:
+            print(f"Docker startup failed. Retrying in 5s... ({attempt + 1}/{max_retries})")
+            time.sleep(5)
+        else:
+            print("Failed to start Docker after multiple attempts. Check your internet connection or Docker Desktop status.")
+            sys.exit(1)
 
     # 2. Wait for Postgres Healthcheck
     print("--- 2. Waiting for Database to be ready ---")
