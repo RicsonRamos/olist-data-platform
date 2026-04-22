@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: orders
+        identifier: olist_orders
+      - name: customers
+        identifier: olist_customers
+      - name: order_items
+        identifier: olist_order_items
+      - name: order_payments
+        identifier: olist_order_payments
+      - name: products
+        identifier: olist_products
+      - name: product_category_name_translation
+      - name: sellers
+        identifier: olist_sellers
+      - name: order_reviews
+        identifier: olist_order_reviews
+      - name: geolocation
+        identifier: olist_geolocation

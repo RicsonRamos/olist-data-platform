@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: "Cleaned orders data with casted timestamps."
+    columns:
+      - name: order_id
+        description: "Unique identifier for the order."
+        tests:
+          - unique
+          - not_null
+      - name: order_status
+        description: "Current status of the order."
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['delivered', 'shipped', 'canceled', 'invoiced', 'processing', 'approved', 'unavailable', 'created']
+
+  - name: stg_customers
+    description: "Customer data with unique identifiers."
+    columns:
+      - name: customer_id
+        description: "Primary key for customers in the orders table."
+        tests:
+          - unique
+          - not_null
+      - name: customer_unique_id
+        description: "Unique identifier for the customer (across multiple purchases)."
+        tests:
+          - not_null
+
+  - name: stg_order_items
+    description: "Items included in each order."
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+      - name: product_id
+        tests:
+          - not_null
+
+  - name: stg_order_payments
+    description: "Payment details for each order."
+    columns:
+      - name: order_id
+        tests:
+          - not_null
+      - name: payment_type
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['credit_card', 'boleto', 'voucher', 'debit_card', 'not_defined']

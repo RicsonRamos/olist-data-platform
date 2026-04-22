@@ -1,0 +1,12 @@
+.git
+.gitignore
+.venv
+venv
+__pycache__
+.env
+dbt_project/target
+dbt_project/dbt_packages
+dbt_project/logs
+data/
+README.md
+run_pipeline.py
