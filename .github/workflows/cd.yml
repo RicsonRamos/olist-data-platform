@@ -12,9 +12,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: actions/setup-docker-action@v2
-        with:
-          daemon-off: false
+        uses: docker/setup-buildx-action@v3
 
       - name: Build Image (Simulation)
         run: |
