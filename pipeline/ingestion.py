@@ -1,93 +1,105 @@
 import os
-import zipfile
 import pandas as pd
-from sqlalchemy import text
-from sqlalchemy.exc import OperationalError
+import hashlib
 import time
+import shutil
+from datetime import datetime
+from sqlalchemy import text
 from pipeline.utils import get_engine, log_job
 
+# Layer Paths
 DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
+LANDING_DIR = os.path.join(DATA_DIR, 'landing')
+BRONZE_DIR = os.path.join(DATA_DIR, 'bronze')
+SILVER_DIR = os.path.join(DATA_DIR, 'silver')
+
 RAW_SCHEMA = 'raw'
 
-def clean_column_name(name):
-    return name.strip().lower().replace(' ', '_').replace('.', '_')
+def calculate_file_hash(file_path):
+    """Generate SHA-256 hash to ensure file-level idempotency."""
+    sha256_hash = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
+
+def is_file_processed(engine, file_hash):
+    """Check if file hash exists in the checkpoint table."""
+    query = text("SELECT 1 FROM metadata.processed_files WHERE file_hash = :file_hash")
+    with engine.connect() as conn:
+        return conn.execute(query, {"file_hash": file_hash}).fetchone() is not None
+
+def clean_column_name(col):
+    return col.lower().replace("dataset", "").replace("dataset", "").strip("_")
 
 def ingest_data():
     engine = get_engine()
     total_start_time = time.time()
     
-    # Ensure raw schema and audit table exist
-    with engine.connect() as conn:
+    print(f"🚀 [INGESTION] Starting Incremental Load | {datetime.now().strftime('%H:%M:%S')}")
+    
+    # Ensure Schemas exist
+    with engine.begin() as conn:
         conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {RAW_SCHEMA};"))
         conn.execute(text("CREATE SCHEMA IF NOT EXISTS metadata;"))
-        
-        # Run audit setup if it exists
-        setup_path = os.path.join(os.path.dirname(__file__), 'audit_setup.sql')
-        if os.path.exists(setup_path):
-            with open(setup_path, 'r') as f:
-                conn.execute(text(f.read()))
-        
-        conn.commit()
+
+    files = [f for f in os.listdir(LANDING_DIR) if f.endswith(('.csv', '.zip'))]
     
-    files = [f for f in os.listdir(DATA_DIR) if f.endswith('.csv') or f.endswith('.zip')]
-    
+    if not files:
+        print("ℹ️ [INGESTION] No new files in landing zone.")
+        return
+
     for file in files:
-        file_path = os.path.join(DATA_DIR, file)
-        table_name = file.replace('.csv', '').replace('.zip', '').replace('_dataset', '')
-        
+        file_path = os.path.join(LANDING_DIR, file)
+        table_name = file.replace("olist_", "").replace("_dataset.csv", "").replace(".csv", "")
+        file_hash = calculate_file_hash(file_path)
+
+        if is_file_processed(engine, file_hash):
+            print(f"⏭️ [SKIP] {file} (already processed via hash {file_hash[:8]})")
+            continue
+
         start_time = time.time()
+        print(f"📦 [PROCESS] {file} -> table: {table_name}")
         
         try:
-            if file.endswith('.zip'):
-                with zipfile.ZipFile(file_path, 'r') as z:
-                    csv_name = z.namelist()[0]
-                    with z.open(csv_name) as f:
-                        df = pd.read_csv(f)
-            else:
-                df = pd.read_csv(file_path)
-                
-            if len(df) == 0:
-                raise ValueError(f"Empty dataset detected for {table_name}")
-                
-            df.columns = [clean_column_name(col) for col in df.columns]
+            # 1. Read Data
+            df = pd.read_csv(file_path)
             
-            # Resilient Ingestion Loop
-            for attempt in range(3):
-                try:
-                    with engine.begin() as conn:
-                        table_exists = conn.execute(text(
-                            f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = '{RAW_SCHEMA}' AND table_name = '{table_name}')"
-                        )).scalar()
-                        conn.execute(text("SET lock_timeout = '5s'"))
-                        if table_exists:
-                            conn.execute(text(f"TRUNCATE TABLE {RAW_SCHEMA}.{table_name}"))
-                    
-                    df.to_sql(
-                        table_name, engine, schema=RAW_SCHEMA, 
-                        if_exists='append' if table_exists else 'replace', 
-                        index=False, chunksize=10000, method='multi'
-                    )
-                    
-                    log_job(engine, f"ingest_{table_name}", "SUCCESS", start_time, rows=len(df))
-                    print(f"[INGESTION] table={table_name} status=success rows={len(df)}")
-                    break
-                    
-                except OperationalError as e:
-                    if "lock timeout" not in str(e).lower() or attempt == 2:
-                        log_job(engine, f"ingest_{table_name}", "FAILED", start_time, error=e)
-                        raise
-                    time.sleep(2 ** attempt)
+            # 2. Add Metadata & Standardize
+            df.columns = [clean_column_name(col) for col in df.columns]
+            df['_metadata_ingested_at'] = datetime.now()
+            df['_metadata_source_file'] = file
+            df['_metadata_file_hash'] = file_hash
+
+            # 3. Layer: Silver (Parquet)
+            os.makedirs(SILVER_DIR, exist_ok=True)
+            df.to_parquet(os.path.join(SILVER_DIR, f"{table_name}.parquet"), index=False)
+
+            # 4. Layer: Raw (PostgreSQL)
+            df.to_sql(table_name, engine, schema=RAW_SCHEMA, if_exists='append', index=False)
+
+            # 5. Checkpoint & Audit
+            with engine.begin() as conn:
+                conn.execute(text("""
+                    INSERT INTO metadata.processed_files (file_name, file_hash, row_count)
+                    VALUES (:file_name, :file_hash, :row_count)
+                """), {"file_name": file, "file_hash": file_hash, "row_count": len(df)})
+            
+            log_job(engine, f"ingest_{table_name}", "SUCCESS", start_time, rows=len(df))
+
+            # 6. Layer: Bronze (Archive)
+            partition_dir = os.path.join(BRONZE_DIR, datetime.now().strftime('%Y-%m-%d'))
+            os.makedirs(partition_dir, exist_ok=True)
+            shutil.move(file_path, os.path.join(partition_dir, file))
+            
+            print(f"✅ [SUCCESS] {table_name} ({len(df)} rows) in {round(time.time()-start_time, 2)}s")
+
         except Exception as e:
             log_job(engine, f"ingest_{table_name}", "FAILED", start_time, error=e)
-            print(f"[INGESTION] [ERROR] table={table_name} error={str(e)}")
+            print(f"❌ [ERROR] {table_name}: {str(e)}")
             raise
-    
-    total_duration = round(time.time() - total_start_time, 2)
-    print(f"[INGESTION] total_duration={total_duration}s")
+
+    print(f"🏁 [INGESTION] Completed in {round(time.time()-total_start_time, 2)}s")
 
 if __name__ == "__main__":
-    try:
-        ingest_data()
-        print("--- Ingestion completed successfully! ---")
-    except Exception as e:
-        print(f"--- Ingestion failed: {e} ---")
+    ingest_data()

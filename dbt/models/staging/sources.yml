@@ -6,8 +6,14 @@ sources:
     tables:
       - name: orders
         identifier: olist_orders
+        columns:
+          - name: _metadata_ingested_at
+          - name: _metadata_source_file
       - name: customers
         identifier: olist_customers
+        columns:
+          - name: _metadata_ingested_at
+          - name: _metadata_source_file
       - name: order_items
         identifier: olist_order_items
       - name: order_payments
