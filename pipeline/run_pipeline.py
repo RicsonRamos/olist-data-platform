@@ -1,8 +1,7 @@
 import subprocess
-import time
 import sys
-import os
-from pipeline.utils import get_engine, log_job
+import time
+
 
 def run_command(command, cwd=None):
     """Execute shell commands and handle errors."""
@@ -19,7 +18,7 @@ def start_infra():
     
     # Healthcheck loop
     retries = 30
-    for i in range(retries):
+    for _i in range(retries):
         result = subprocess.run("docker inspect --format='{{.State.Health.Status}}' olist_postgres", 
                                 shell=True, capture_output=True, text=True)
         if "healthy" in result.stdout:

@@ -1,6 +1,7 @@
-from datetime import datetime
 from sqlalchemy import text
+
 from pipeline.utils import get_engine
+
 
 class PipelineState:
     PENDING = "PENDING"

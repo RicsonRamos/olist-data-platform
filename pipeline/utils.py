@@ -1,7 +1,8 @@
 import os
 import time
-from sqlalchemy import create_engine, text
+
 from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
 
 # Load environment variables from .env file
 load_dotenv()

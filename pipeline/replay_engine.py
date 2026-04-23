@@ -1,4 +1,3 @@
-from pipeline.event_bus import EventBus
 
 class ReplayEngine:
     def __init__(self, event_bus, processor):

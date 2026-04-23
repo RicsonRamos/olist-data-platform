@@ -1,7 +1,6 @@
-import time
-from pipeline.event_bus import EventBus
-from pipeline.state_machine import StateMachine, PipelineState
 from pipeline.orchestrator import Orchestrator
+from pipeline.state_machine import PipelineState
+
 
 class EventProcessor:
     def __init__(self, event_bus, state_machine, consumer_group="default_worker"):
@@ -36,7 +35,11 @@ class EventProcessor:
             raise e
 
     def _handle_file_arrival(self, payload):
-        from pipeline.run_pipeline_tasks import run_ingestion, run_dbt_transformations, run_dbt_tests
+        from pipeline.run_pipeline_tasks import (
+            run_dbt_tests,
+            run_dbt_transformations,
+            run_ingestion,
+        )
         
         self.state.transition_to(PipelineState.RUNNING)
         

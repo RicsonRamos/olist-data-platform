@@ -1,5 +1,6 @@
-import duckdb
 import os
+
+import duckdb
 
 # Define path to Silver Lake
 SILVER_DIR = os.path.join(os.path.dirname(__file__), '..', 'data', 'silver')
