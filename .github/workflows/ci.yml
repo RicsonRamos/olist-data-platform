@@ -40,9 +40,22 @@ jobs:
           cp .env.example .env
           # Create data directory structure
           mkdir -p data/landing data/bronze data/silver data/gold metadata
-          # Create a tiny sample file for testing
+          # Create tiny sample files for testing
+          # orders
           echo "order_id,customer_id,order_status,order_purchase_timestamp,order_approved_at,order_delivered_carrier_date,order_delivered_customer_date,order_estimated_delivery_date" > data/landing/olist_orders_dataset.csv
           echo "1,1,delivered,2023-01-01 10:00:00,2023-01-01 11:00:00,2023-01-02 10:00:00,2023-01-03 10:00:00,2023-01-10 10:00:00" >> data/landing/olist_orders_dataset.csv
+          
+          # customers
+          echo "customer_id,customer_unique_id,customer_zip_code_prefix,customer_city,customer_state" > data/landing/olist_customers_dataset.csv
+          echo "1,uuid1,12345,city,SP" >> data/landing/olist_customers_dataset.csv
+
+          # order_items
+          echo "order_id,order_item_id,product_id,seller_id,shipping_limit_date,price,freight_value" > data/landing/olist_order_items_dataset.csv
+          echo "1,1,1,1,2023-01-02 10:00:00,100,10" >> data/landing/olist_order_items_dataset.csv
+
+          # order_payments
+          echo "order_id,payment_sequential,payment_type,payment_installments,payment_value" > data/landing/olist_order_payments_dataset.csv
+          echo "1,1,credit_card,1,110" >> data/landing/olist_order_payments_dataset.csv
           
           # Create dbt profile for CI
           echo "olist:
