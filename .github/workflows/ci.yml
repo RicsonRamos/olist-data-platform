@@ -28,6 +28,11 @@ jobs:
       - name: SQL Lint (SQLFluff)
         run: sqlfluff lint dbt/models --dialect postgres
 
+      - name: Run Unit Tests & Check Coverage
+        run: |
+          pip install pytest pytest-cov pytest-mock pandas pyarrow fastparquet sqlalchemy psycopg2-binary
+          pytest
+
   test-pipeline:
     name: Functional Pipeline Test
     runs-on: ubuntu-latest

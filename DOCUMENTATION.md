@@ -90,4 +90,21 @@ Para garantir que a plataforma seja amigável ao negócio, implementamos princí
 *   **Nomenclatura Orientada ao Negócio**: As tabelas de consumo usam termos de negócio (ex: `sales_dashboard` em vez de `order_item_payment_joined`).
 
 ---
+
+## 8. Qualidade e CI/CD (Engenharia Sênior)
+
+A plataforma implementa um ciclo de vida rigoroso de validação automatizada para garantir que nenhum código quebre o ambiente de produção:
+
+### 8.1. CI/CD Efêmero (GitHub Actions)
+Toda alteração enviada para o repositório é validada em um ambiente Docker isolado e temporário:
+1.  **Linting**: Validação de estilo e padrões de engenharia para Python (`ruff`) e SQL (`sqlfluff`).
+2.  **Unit Testing**: Execução de testes unitários com `pytest`, garantindo que a lógica interna (hashing, orquestração, transformações) funcione isoladamente.
+3.  **Functional Testing**: O CI sobe uma infraestrutura real (Postgres), gera dados de teste sintéticos e executa o pipeline de ponta a ponta para validar a integração e os modelos dbt.
+
+### 8.2. Governança de Testes
+*   **Cobertura de Código**: Mantemos um rigoroso padrão de cobertura superior a **80%** (via `pytest-cov`). O CI bloqueia automaticamente qualquer mudança que reduza a qualidade dos testes.
+*   **Idempotência**: Testes específicos garantem que o reprocessamento do mesmo arquivo não gere duplicidade de dados.
+*   **Data Quality (dbt tests)**: Além do código, os *dados* são testados para garantir unicidade, não-nulidade e integridade referencial entre as tabelas.
+
+---
 Documentação de Engenharia Sênior — Focada em Design, Implementação e Resiliência.
