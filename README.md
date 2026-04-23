@@ -1,4 +1,5 @@
 # Plataforma de Dados Olist
+![CI - Data Platform Validation](https://github.com/RicsonRamos/olist-data-platform/actions/workflows/ci.yml/badge.svg)
 ### Construindo uma Fundação Confiável para Inteligência de E-commerce
 
 ---

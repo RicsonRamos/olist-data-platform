@@ -1,0 +1,28 @@
+name: CD - Container Delivery
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: actions/setup-docker-action@v2
+        with:
+          daemon-off: false
+
+      - name: Build Image (Simulation)
+        run: |
+          docker build -t olist-data-pipeline:latest .
+          docker tag olist-data-pipeline:latest olist-data-pipeline:${{ github.sha }}
+
+      - name: Save dbt Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-manifest
+          path: dbt/target/manifest.json

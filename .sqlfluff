@@ -1,0 +1,13 @@
+[sqlfluff]
+templater = dbt
+dialect = postgres
+
+[sqlfluff:templater:dbt]
+project_dir = ./dbt
+profiles_dir = .
+
+[sqlfluff:indentation]
+tab_width = 4
+
+[sqlfluff:rules:L010] # Capitalisation of keywords
+capitalisation_policy = lower
