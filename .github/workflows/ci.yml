@@ -55,7 +55,7 @@ jobs:
                 password: admin123
                 port: 5432
                 dbname: olist
-                schema: public" > profiles.yml
+                schema: public" > dbt/profiles.yml
 
       - name: Run Ephemeral Infrastructure
         run: docker compose up -d postgres
