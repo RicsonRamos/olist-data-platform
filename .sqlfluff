@@ -1,13 +1,12 @@
 [sqlfluff]
-templater = dbt
+templater = jinja
 dialect = postgres
 
-[sqlfluff:templater:dbt]
-project_dir = ./dbt
-profiles_dir = .
+[sqlfluff:templater:jinja]
+apply_dbt_builtins = True
 
 [sqlfluff:indentation]
 tab_width = 4
 
-[sqlfluff:rules:L010] # Capitalisation of keywords
+[sqlfluff:rules:capitalisation.keywords]
 capitalisation_policy = lower
