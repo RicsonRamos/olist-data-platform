@@ -92,7 +92,7 @@ jobs:
       - name: dbt Test (Data Quality)
         run: |
           cd dbt
-          dbt test --profiles-dir ..
+          dbt test --profiles-dir .
 
       - name: Cleanup
         if: always()
