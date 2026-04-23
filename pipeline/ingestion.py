@@ -38,10 +38,14 @@ def ingest_data():
     
     print(f"🚀 [INGESTION] Starting Incremental Load | {datetime.now().strftime('%H:%M:%S')}")
     
-    # Ensure Schemas exist
+    # Ensure Metadata environment is ready
+    setup_path = os.path.join(os.path.dirname(__file__), 'audit_setup.sql')
+    with open(setup_path, 'r') as f:
+        setup_sql = f.read()
+    
     with engine.begin() as conn:
+        conn.execute(text(setup_sql))
         conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {RAW_SCHEMA};"))
-        conn.execute(text("CREATE SCHEMA IF NOT EXISTS metadata;"))
 
     files = [f for f in os.listdir(LANDING_DIR) if f.endswith(('.csv', '.zip'))]
     
@@ -51,7 +55,7 @@ def ingest_data():
 
     for file in files:
         file_path = os.path.join(LANDING_DIR, file)
-        table_name = file.replace("olist_", "").replace("_dataset.csv", "").replace(".csv", "")
+        table_name = file.replace("_dataset.csv", "").replace(".csv", "")
         file_hash = calculate_file_hash(file_path)
 
         if is_file_processed(engine, file_hash):

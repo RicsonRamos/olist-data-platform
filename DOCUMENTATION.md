@@ -14,6 +14,7 @@ A plataforma foi projetada como uma Simulação Local de Lakehouse, implementand
 * Bronze (Sistema de Arquivos - Arquivo): Armazenamento imutável particionado por data para os arquivos CSV/Zip originais. Permite recuperação de desastres e reprocessamento histórico completo.
 * Silver (Sistema de Arquivos - Parquet): Armazenamento colunar otimizado para leituras analíticas. Independente do banco de dados, consultável via DuckDB/Spark.
 * Gold (Banco de Dados - Marts): Esquemas relacionais finais (staging, marts, consumption) gerenciados pelo dbt. Implementa regras de negócio e integridade referencial.
+* Semantic (BI - Views): A camada consumption serve como o modelo semântico oficial para ferramentas de visualização (Metabase/Power BI), garantindo que os usuários consumam apenas dados validados.
 
 ---
 
@@ -78,6 +79,15 @@ O orquestrador (run_pipeline.py) executa um DAG sequencial com os seguintes est�
 ### 6.3. Limitações do Sistema
 * Escala: Projetado para escalonamento vertical (Postgres/Disco Local). Escalonamento horizontal exigiria S3 e Snowflake/BigQuery.
 * CDC: O rastreamento é baseado em hash de arquivo, não em logs (WAL). Exclusões físicas (hard deletes) na origem não são capturadas automaticamente.
+
+---
+
+## 🛡️ 7. Governança e Camada Semântica
+
+Para garantir que a plataforma seja amigável ao negócio, implementamos princípios de **Analytics Engineering**:
+*   **Abstração de Complexidade**: Os usuários finais nunca acessam o esquema `raw`. Toda a complexidade de limpeza e deduplicação é resolvida nas camadas internas do dbt.
+*   **Contratos de Dados**: A camada `consumption` funciona como um contrato estável. Mesmo que a lógica interna da `staging` mude, as views de consumo permanecem consistentes para o BI.
+*   **Nomenclatura Orientada ao Negócio**: As tabelas de consumo usam termos de negócio (ex: `sales_dashboard` em vez de `order_item_payment_joined`).
 
 ---
 Documentação de Engenharia Sênior — Focada em Design, Implementação e Resiliência.

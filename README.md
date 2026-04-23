@@ -24,6 +24,7 @@ A Plataforma de Dados Olist é um Lakehouse Híbrido que preenche a lacuna entre
 * Idempotência do Sistema: Seguro para rodar a qualquer momento; dados idênticos são ignorados automaticamente.
 * Auditabilidade de Ponta a Ponta: Cada registro é rastreável até seu arquivo de origem e lote de ingestão.
 * Camada Analítica Desacoplada: Armazenamento baseado em arquivos de alta performance para cargas de trabalho de Ciência de Dados.
+* **Modelo Semântico de BI**: Camada de consumo preparada para ferramentas como Metabase e Power BI, garantindo governança e clareza.
 
 ## Impacto de Negócio e KPIs
 | Objetivo | Indicador de Impacto |
@@ -36,7 +37,8 @@ A Plataforma de Dados Olist é um Lakehouse Híbrido que preenche a lacuna entre
 ## Como Começar
 1. Instalação: pip install -r requirements.txt
 2. Executar Pipeline: python -m pipeline.run_pipeline
-3. Mergulho Técnico: Para detalhes de implementação, veja DOCUMENTATION.md.
+3. Visualização: Veja o [POWERBI_GUIDE.md](./POWERBI_GUIDE.md) ou [METABASE_GUIDE.md](./METABASE_GUIDE.md).
+4. Mergulho Técnico: Para detalhes de implementação, veja DOCUMENTATION.md.
 
 ## Stack Tecnológica
 * Infraestrutura: Docker, PostgreSQL 15

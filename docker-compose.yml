@@ -4,15 +4,15 @@ services:
     container_name: olist_postgres
     restart: always
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-olist}
-      POSTGRES_USER: ${POSTGRES_USER:-admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin123}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d olist"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -21,7 +21,7 @@ services:
     image: prometheuscommunity/postgres-exporter
     container_name: olist_postgres_exporter
     environment:
-      DATA_SOURCE_NAME: "postgresql://admin:admin123@postgres:5432/olist?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
     ports:
       - "9187:9187"
     depends_on:
@@ -42,9 +42,9 @@ services:
     image: grafana/grafana
     container_name: olist_grafana
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT}:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
     depends_on:
       - prometheus
 
@@ -53,20 +53,34 @@ services:
     container_name: olist_prefect_server
     command: prefect server start
     environment:
-      - PREFECT_API_URL=http://127.0.0.1:4200/api
+      - PREFECT_API_URL=${PREFECT_API_URL}
       - PREFECT_SERVER_API_HOST=0.0.0.0
     ports:
-      - "4200:4200"
+      - "${PREFECT_PORT}:4200"
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: olist_rabbitmq
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MGMT_PORT}:15672"
     environment:
-      - RABBITMQ_DEFAULT_USER=admin
-      - RABBITMQ_DEFAULT_PASS=admin123
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+
+  metabase:
+    image: metabase/metabase:latest
+    container_name: olist_metabase
+    ports:
+      - "${METABASE_PORT}:3000"
+    volumes:
+      - metabase_data:/metabase-data
+    environment:
+      - MB_DB_FILE=${METABASE_DB_FILE}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:
+  metabase_data:
