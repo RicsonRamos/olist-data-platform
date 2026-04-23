@@ -38,6 +38,11 @@ jobs:
       - name: Set up Environment
         run: |
           cp .env.example .env
+          # Create data directory structure
+          mkdir -p data/landing data/bronze data/silver data/gold metadata
+          # Create a tiny sample file for testing
+          echo "order_id,customer_id,order_status,order_purchase_timestamp,order_approved_at,order_delivered_carrier_date,order_delivered_customer_date,order_estimated_delivery_date" > data/landing/olist_orders_dataset.csv
+          echo "1,1,delivered,2023-01-01 10:00:00,2023-01-01 11:00:00,2023-01-02 10:00:00,2023-01-03 10:00:00,2023-01-10 10:00:00" >> data/landing/olist_orders_dataset.csv
 
       - name: Run Ephemeral Infrastructure
         run: docker compose up -d postgres
