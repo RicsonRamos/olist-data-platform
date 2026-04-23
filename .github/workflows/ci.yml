@@ -38,8 +38,6 @@ jobs:
       - name: Set up Environment
         run: |
           cp .env.example .env
-          # Use CI specific overrides if needed
-          sed -i 's/POSTGRES_HOST=localhost/POSTGRES_HOST=postgres/g' .env
 
       - name: Run Ephemeral Infrastructure
         run: docker compose up -d postgres
