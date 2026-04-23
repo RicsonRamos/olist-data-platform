@@ -25,6 +25,20 @@ jobs:
       - name: Python Lint (Ruff)
         run: ruff check .
         
+      - name: Create Dummy dbt Profile for Linting
+        run: |
+          echo "olist:
+            target: dev
+            outputs:
+              dev:
+                type: postgres
+                host: localhost
+                user: admin
+                password: password
+                port: 5432
+                dbname: olist
+                schema: public" > profiles.yml
+
       - name: SQL Lint (SQLFluff)
         run: sqlfluff lint dbt/models --dialect postgres
 
