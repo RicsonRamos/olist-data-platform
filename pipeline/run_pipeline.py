@@ -2,7 +2,7 @@ import subprocess
 import time
 import os
 import sys
-from scripts.utils import get_engine, log_job
+from pipeline.utils import get_engine, log_job
 
 def run_command(command, cwd=None):
     print(f"Running: {command}")
@@ -48,17 +48,17 @@ def main():
     # 3. Ingestion
     print("--- 3. Running Data Ingestion (Python) ---")
     # Ingestion logs its own internal jobs
-    if not run_command(f"{sys.executable} scripts/ingestion.py"):
+    if not run_command(f"{sys.executable} -m pipeline.ingestion"):
         print("Ingestion failed.")
         sys.exit(1)
 
     # 4. dbt Transformation
     print("--- 4. Running dbt Transformations ---")
-    dbt_dir = "dbt_project"
+    dbt_dir = "dbt"
     
     # dbt run
     start_time = time.time()
-    if run_command("dbt run --profiles-dir .", cwd=dbt_dir):
+    if run_command(f"{sys.executable} -m dbt.cli.main run --profiles-dir .", cwd=dbt_dir):
         log_job(engine, "dbt_run", "SUCCESS", start_time)
     else:
         log_job(engine, "dbt_run", "FAILED", start_time)
@@ -67,7 +67,7 @@ def main():
     
     # dbt test
     start_time = time.time()
-    if run_command("dbt test --profiles-dir .", cwd=dbt_dir):
+    if run_command(f"{sys.executable} -m dbt.cli.main test --profiles-dir .", cwd=dbt_dir):
         log_job(engine, "dbt_test", "SUCCESS", start_time)
     else:
         log_job(engine, "dbt_test", "FAILED", start_time)

@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 import time
-from scripts.utils import get_engine, log_job
+from pipeline.utils import get_engine, log_job
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
 RAW_SCHEMA = 'raw'
@@ -20,7 +20,13 @@ def ingest_data():
     with engine.connect() as conn:
         conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {RAW_SCHEMA};"))
         conn.execute(text("CREATE SCHEMA IF NOT EXISTS metadata;"))
-        # (Assuming audit_setup.sql has been run)
+        
+        # Run audit setup if it exists
+        setup_path = os.path.join(os.path.dirname(__file__), 'audit_setup.sql')
+        if os.path.exists(setup_path):
+            with open(setup_path, 'r') as f:
+                conn.execute(text(f.read()))
+        
         conn.commit()
     
     files = [f for f in os.listdir(DATA_DIR) if f.endswith('.csv') or f.endswith('.zip')]

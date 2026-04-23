@@ -1,113 +1,161 @@
-# 🛒 Olist E-commerce Data Pipeline: Da Ingestão ao Insight
+# 🛒 Olist E-commerce Data Pipeline
 
-Este projeto implementa uma solução completa de engenharia de dados (ELT) para transformar dados brutos de e-commerce em inteligência de negócio. Utilizamos uma stack moderna para responder: **"Por que atrasamos e quem são nossos clientes valiosos?"**
+[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
+[![dbt](https://img.shields.io/badge/dbt-1.5+-orange.svg)](https://www.getdbt.com/)
+[![Postgres](https://img.shields.io/badge/Postgres-15-blue.svg)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-blue.svg)](https://www.docker.com/)
 
-## 📖 Storytelling & Insights de Negócio
-
-Em um mercado competitivo como o e-commerce, a experiência do cliente é definida por dois pilares: **pontualidade** e **valor**.
-
-### 1. O Enigma do Atraso (Logística)
-Não basta saber *que* atrasou, precisamos saber *onde*. 
-- **Insight**: Através da nossa camada de consumo, identificamos a `Taxa de Atraso (%)` por estado. Isso permite que a equipe de logística renegocie contratos com transportadoras em regiões críticas ou ajuste as expectativas de entrega no checkout.
-
-### 2. O Valor do Cliente (LTV & CRM)
-Nem todo cliente é igual. Focar no CAC (Custo de Aquisição) sem olhar para o LTV (Lifetime Value) é um erro comum.
-- **Insight**: Segmentamos os clientes em **High, Medium e Low Value**. 
-    - **Ação**: Clientes 'High Value' (aqueles que gastam acima de R$ 500) devem receber ofertas exclusivas e atendimento prioritário para garantir a retenção.
+Este repositório contém um pipeline de dados completo (ELT) que ingere, limpa e transforma os dados do dataset público da **Olist** (E-commerce brasileiro). O projeto foca em fornecer insights estratégicos sobre performance logística e segmentação de clientes através de uma arquitetura robusta e automatizada.
 
 ---
 
-## 🏗️ Arquitetura do Sistema
+## 🏗️ Arquitetura Técnica
+
+O projeto segue o padrão **ELT (Extract, Load, Transform)**, priorizando a transformação dentro do Data Warehouse (PostgreSQL) utilizando **dbt**.
 
 ```mermaid
 graph TD
-    subgraph "Camada de Fontes"
-        CSV[CSVs & Zips]
+    subgraph "Fontes de Dados (CSV/Zip)"
+        SRC[Source Data]
     end
 
-    subgraph "Ingestão (Python)"
-        PY[Python Cleaning & Load]
+    subgraph "Ingestão & Orquestração (Python)"
+        PY[pipeline/run_pipeline.py]
+        ING[pipeline/ingestion.py]
     end
 
     subgraph "Armazenamento (Docker)"
         PG[(PostgreSQL 15)]
     end
 
-    subgraph "Transformação (dbt)"
-        STG[Staging: Limpeza & Cast]
-        MRT[Marts: Regras de Negócio]
-        CNS[Consumption: Views para Power BI]
+    subgraph "Modelagem de Dados (dbt)"
+        RAW[[Schema: raw]]
+        STG[[Schema: staging]]
+        MRT[[Schema: intermediate / marts]]
+        CNS[[Schema: consumption]]
     end
 
-    CSV --> PY
-    PY -->|Raw Schema| PG
-    PG --> STG
+    subgraph "Observabilidade"
+        AUD[[Schema: metadata]]
+    end
+
+    SRC --> PY
+    PY --> ING
+    ING -->|Load & Audit| RAW
+    ING -->|Log Status| AUD
+    RAW --> STG
     STG --> MRT
     MRT --> CNS
-    CNS -->|Análise Final| PBI[Power BI Dashboard]
+    CNS -->|Insights| PBI[Power BI / Metabase]
 ```
 
 ---
 
-## 🚀 Como Executar (Automação Total)
+## 🛠️ Stack Tecnológica
 
-Agora você pode rodar todo o pipeline com um único comando!
+- **Linguagem**: Python 3.9+ (Ingestão e Orquestração)
+- **Banco de Dados**: PostgreSQL 15 (Containerizado)
+- **Transformação**: dbt (Data Build Tool)
+- **Infraestrutura**: Docker & Docker Compose
+- **Bibliotecas Python**: Pandas, SQLAlchemy, Psycopg2
+- **Qualidade de Dados**: dbt Tests (Generic & Custom)
 
-### Pré-requisitos
-- Docker Desktop (Rodando)
+---
+
+## 📂 Estrutura do Projeto
+
+```text
+.
+├── data/                   # Arquivos CSV brutos (zipados ou extraídos)
+├── dbt/                    # Projeto dbt (Modelos, Macros, Seeds)
+│   ├── models/             # Camadas de modelagem (staging, marts, etc)
+│   └── profiles.yml        # Configuração de conexão do dbt
+├── infra/                  # Configurações de infraestrutura (Docker)
+├── pipeline/               # Orquestração e Ingestão
+│   ├── run_pipeline.py     # Script mestre de automação (Orquestrador)
+│   ├── ingestion.py        # Script de carga resiliente
+│   ├── utils.py            # Funções utilitárias (conexão, logging)
+│   └── audit_setup.sql     # DDL para tabelas de auditoria
+├── config/                 # Configurações globais e esquemas
+├── docker-compose.yml      # Definição dos serviços (Postgres)
+└── requirements.txt        # Dependências do projeto
+```
+
+---
+
+## 📊 Modelagem de Dados & Camadas
+
+O pipeline organiza os dados em esquemas lógicos para garantir governança e performance:
+
+1.  **`raw` (Bronze)**: Dados exatamente como vieram da fonte. Tabelas truncadas e recarregadas a cada execução para garantir idempotência.
+2.  **`staging` (Silver)**: Primeira camada de limpeza. Renomeação de colunas para padrão `snake_case`, cast de tipos (datas, valores numéricos) e deduplicação básica.
+3.  **`intermediate / marts` (Silver/Gold)**: Aplicação de regras de negócio complexas, joins entre entidades (Pedidos + Itens + Clientes) e cálculos de KPIs.
+4.  **`consumption` (Gold)**: Views otimizadas e prontas para consumo por ferramentas de BI. Focadas em:
+    *   `view_delivery_analysis`: Taxas de atraso e performance logística por estado.
+    *   `view_customer_segments`: Classificação de clientes (High/Medium/Low Value) baseada em RFM/LTV.
+5.  **`metadata` (Audit)**: Camada de observabilidade que registra o status de cada job, tempo de execução e volumetria.
+
+---
+
+## 🔍 Observabilidade & Auditoria
+
+Implementamos um sistema de logs estruturados na tabela `metadata.audit_jobs`. Cada etapa do pipeline registra:
+- `job_name`: Nome da tarefa executada.
+- `status`: SUCCESS ou FAILED.
+- `duration_seconds`: Tempo total gasto.
+- `rows_processed`: Quantidade de registros afetados.
+- `error_message`: Stack trace em caso de falha.
+
+---
+
+## 🚀 Como Executar
+
+### 1. Pré-requisitos
+Certifique-se de ter instalado:
+- Docker e Docker Compose
 - Python 3.9+
+- Ambiente Virtual (recomendado)
 
-### Execução Rápida
-1. Instale as dependências:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Execute o script mestre:
-   ```bash
-   python run_pipeline.py
-   ```
+### 2. Configuração
+Instale as dependências:
+```powershell
+pip install -r requirements.txt
+```
 
-O script irá:
-- Subir o container Docker.
-- Esperar o banco ficar pronto (healthcheck).
-- Executar a ingestão Python.
-- Rodar todas as transformações e testes do dbt.
+### 3. Execução Total
+O projeto conta com um orquestrador automatizado que gerencia o ciclo de vida completo:
+```powershell
+python -m pipeline.run_pipeline
+```
+
+**O que este comando faz?**
+1.  Inicia o banco de dados via **Docker Compose**.
+2.  Aguarda o **Healthcheck** do PostgreSQL (garante que o banco está pronto para conexões).
+3.  Executa a **Ingestão Python**:
+    *   Lê arquivos CSV/Zip da pasta `data/`.
+    *   Cria schemas e tabelas de auditoria automaticamente.
+    *   Carrega os dados para o schema `raw`.
+4.  Executa as **Transformações dbt**:
+    *   Compila e roda todos os modelos SQL.
+    *   Executa os testes de qualidade (Primary keys, Not null, etc).
 
 ---
 
-## 🛠️ Camada de Consumo (Power BI)
+## ✅ Qualidade de Dados
 
-Criamos views otimizadas no schema `consumption` para facilitar a conexão com o Power BI:
-- `view_delivery_analysis`: Gráficos de atraso por região e tempo médio de entrega.
-- `view_customer_segments`: Dashboards de CRM e segmentação de valor.
-- `mart_kpis`: Cartões de métricas rápidas (Faturamento, Ticket Médio, etc).
+Garantimos a integridade dos insights através de testes automatizados no dbt:
+- **Schema Tests**: Validação de chaves primárias e campos obrigatórios.
+- **Relationship Tests**: Garante integridade referencial (ex: todo item de pedido pertence a um pedido existente).
+- **Business Logic Tests**: Testes customizados para validar datas (ex: entrega não pode ser anterior à compra).
 
 ---
 
-## ✅ Qualidade Garantida
-Implementamos 3 níveis de testes:
-1. **Schema Tests**: Garantia de unicidade e campos não nulos.
-2. **Integrity Tests**: Verificação de dados órfãos (ex: pagamento sem pedido).
-3. **Business Logic Tests**: Bloqueio de inconsistências (ex: entrega antes da data de compra).
-## 🚀 Próximos Passos (Roadmap Avançado)
+## 📈 Insights de Negócio Gerados
 
-Para levar este projeto ao nível de uma plataforma de dados corporativa, as seguintes evoluções são recomendadas:
+*   **Logística**: Identificação de gargalos em estados específicos onde a `estimated_delivery_date` é frequentemente excedida.
+*   **Marketing**: Lista de clientes "Champions" (High Value) para campanhas de fidelização personalizadas.
+*   **Vendas**: Evolução mensal do faturamento e ticket médio por categoria de produto.
 
-### 1. Orquestração e Agendamento
-- **Ferramentas**: Implementar **Airflow**, **Prefect** ou **Dagster**.
-- **Benefícios**: DAGs com dependências claras, retries automáticos controlados pelo orquestrador e agendamento inteligente.
+---
 
-### 2. Observabilidade e Monitoramento
-- **Stack**: **Prometheus** + **Grafana** ou **Datadog**.
-- **Métricas**: Alertas de falha em tempo real, tracking de SLA e dashboards de volumetria.
-
-### 3. Governança e Qualidade
-- **Data Contracts**: Implementar contratos de dados para garantir que mudanças na origem não quebrem o downstream.
-- **SCD (Slowly Changing Dimensions)**: Evoluir a camada raw para um histórico `append-only` com suporte a versionamento de dados.
-
-### 4. Engenharia de Performance
-- **Carga Incremental**: Substituir o `TRUNCATE` por processos incrementais no dbt e na ingestão.
-- **Particionamento**: Otimizar tabelas grandes (ex: `geolocation`) através de particionamento físico no PostgreSQL.
-
-### 5. CI/CD e DevOps
-- **Automação**: Pipelines no **GitHub Actions** para deploy automático e execução de testes de qualidade antes de cada merge em produção.
+**Desenvolvido por [Antigravity AI]** para fins de demonstração de arquitetura de dados moderna.

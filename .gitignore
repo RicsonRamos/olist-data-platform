@@ -1,27 +1,66 @@
+# =========================
 # Python
+# =========================
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Virtual environments
 .venv/
 venv/
 ENV/
+env/
+
+# Environment variables
 .env
+.env.*
 
+# =========================
+# Python tooling & caches
+# =========================
+.pytest_cache/
+.mypy_cache/
+.cache/
+.ipynb_checkpoints/
+
+# =========================
+# Logs & temp files
+# =========================
+*.log
+logs/
+*.tmp
+*.temp
+*.swp
+
+# =========================
 # dbt
-dbt_project/target/
-dbt_project/dbt_packages/
-dbt_project/logs/
-dbt_project/profiles.yml
+# =========================
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/profiles.yml
 
-# IDEs
+# =========================
+# IDEs & editors
+# =========================
 .vscode/
 .idea/
 
-# OS
+# =========================
+# OS files
+# =========================
 .DS_Store
 Thumbs.db
 
-# Data (Avoid committing large datasets)
-data/*.zip
-data/*.csv
+# =========================
+# Data (avoid large/raw files)
+# =========================
+data/*
 !data/.gitkeep
+!data/README.md
+
+# =========================
+# Misc
+# =========================
+*.bak
+*.backup
