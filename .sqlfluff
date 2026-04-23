@@ -1,6 +1,8 @@
 [sqlfluff]
 templater = jinja
 dialect = postgres
+# Ignore rules that conflict with readable business aliases, dbt verbosity, or pedantic qualifications
+exclude_rules = RF05, LT05, ST06, RF02
 
 [sqlfluff:templater:jinja]
 apply_dbt_builtins = True
@@ -10,3 +12,10 @@ tab_width = 4
 
 [sqlfluff:rules:capitalisation.keywords]
 capitalisation_policy = lower
+
+[sqlfluff:rules:aliasing.table]
+aliasing_specification = explicit
+
+[sqlfluff:rules:references.qualification]
+# Avoid enforcing qualification for everything to keep code readable
+force_qualification = False

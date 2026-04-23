@@ -24,11 +24,11 @@ final as (
         d.delay_rate_percentage,
         l.total_unique_customers,
         l.high_value_customer_count
-    from ltv l
-    cross join delivery d
+    from ltv as l
+    cross join delivery as d
 )
 
-select 
+select
     total_revenue as "Receita Total",
     total_delivered_orders as "Total de Pedidos Entregues",
     round(average_ticket::numeric, 2) as "Ticket Mdio",

@@ -7,9 +7,9 @@ orders as (
 ),
 
 payments as (
-    select 
-        order_id, 
-        sum(payment_value) as total_order_value 
+    select
+        order_id,
+        sum(payment_value) as total_order_value
     from {{ ref('stg_order_payments') }}
     group by 1
 ),
@@ -19,9 +19,9 @@ customer_orders as (
         c.customer_unique_id,
         o.order_id,
         p.total_order_value
-    from customers c
-    join orders o on c.customer_id = o.customer_id
-    left join payments p on o.order_id = p.order_id
+    from customers as c
+    inner join orders as o on c.customer_id = o.customer_id
+    left join payments as p on o.order_id = p.order_id
     where o.order_status != 'canceled'
 ),
 
@@ -37,9 +37,9 @@ final as (
     group by 1
 )
 
-select 
+select
     *,
-    case 
+    case
         when lifetime_value > 500 then 'High Value'
         when lifetime_value > 100 then 'Medium Value'
         else 'Low Value'

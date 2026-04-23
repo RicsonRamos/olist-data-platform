@@ -26,10 +26,10 @@ final as (
         (oi.price + oi.freight_value) as "Total Bruto",
         op.payment_type as "Forma de Pagamento",
         op.payment_installments as "Parcelas"
-    from orders o
-    inner join order_items oi on o.order_id = oi.order_id
-    left join order_payments op on o.order_id = op.order_id
-    left join customers c on o.customer_id = c.customer_id
+    from orders as o
+    inner join order_items as oi on o.order_id = oi.order_id
+    left join order_payments as op on o.order_id = op.order_id
+    left join customers as c on o.customer_id = c.customer_id
 )
 
 select * from final

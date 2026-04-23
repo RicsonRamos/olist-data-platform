@@ -13,14 +13,8 @@ final as (
         -- Metrics
         extract(day from (delivered_customer_at - purchase_at)) as days_to_deliver,
         extract(day from (delivered_customer_at - estimated_delivery_at)) as delay_days,
-        case 
-            when delivered_customer_at > estimated_delivery_at then true 
-            else false 
-        end as is_delayed,
-        case 
-            when order_status = 'delivered' and delivered_customer_at is null then true 
-            else false 
-        end as is_data_error
+        coalesce(delivered_customer_at > estimated_delivery_at, false) as is_delayed,
+        coalesce(order_status = 'delivered' and delivered_customer_at is null, false) as is_data_error
     from orders
     where order_status = 'delivered'
 )

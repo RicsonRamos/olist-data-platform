@@ -17,8 +17,8 @@ final as (
         d.is_delayed as "Atrasado?",
         c.customer_city as "Cidade",
         c.customer_state as "Estado"
-    from delivery d
-    left join customers c on d.customer_id = c.customer_id
+    from delivery as d
+    left join customers as c on d.customer_id = c.customer_id
 )
 
 select * from final

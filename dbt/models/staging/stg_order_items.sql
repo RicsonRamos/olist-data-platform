@@ -9,7 +9,7 @@
 with source as (
     select * from {{ source('raw', 'order_items') }}
     {% if is_incremental() %}
-      where _metadata_ingested_at > (select max(_metadata_ingested_at) from {{ this }})
+        where _metadata_ingested_at > (select max(_metadata_ingested_at) from {{ this }})
     {% endif %}
 ),
 
