@@ -37,11 +37,25 @@ A Plataforma de Dados Olist é um Lakehouse Híbrido que preenche a lacuna entre
 | Resiliência | Perda zero de dados durante falhas de execução parcial via segurança transacional. |
 
 ## Como Começar
-1. Instalação: pip install -r requirements.txt
-2. Executar Pipeline: python -m pipeline.run_pipeline
-3. Visualização: Veja o [POWERBI_GUIDE.md](./POWERBI_GUIDE.md) ou [METABASE_GUIDE.md](./METABASE_GUIDE.md).
-4. Mergulho Técnico: Para detalhes de implementação, veja [DOCUMENTATION.md](./DOCUMENTATION.md).
-5. Qualidade: Execute `pytest` para validar a suíte de testes e cobertura.
+
+### Instalação
+```powershell
+# Instalação básica (Core)
+pip install .
+
+# Instalação para desenvolvimento e testes (Recomendado)
+pip install -e ".[dev]"
+```
+
+### Execução
+1. **Rodar Pipeline**: `python -m pipeline.run_pipeline`
+2. **Rodar Testes**: `pytest`
+3. **Linting**: `ruff check .`
+
+### Documentação Adicional
+*   [Guia Power BI](./POWERBI_GUIDE.md)
+*   [Guia Metabase](./METABASE_GUIDE.md)
+*   [Mergulho Técnico (Arquitetura & Qualidade)](./DOCUMENTATION.md)
 
 ## Stack Tecnológica
 * Infraestrutura: Docker, PostgreSQL 15

@@ -101,10 +101,17 @@ Toda alteração enviada para o repositório é validada em um ambiente Docker i
 2.  **Unit Testing**: Execução de testes unitários com `pytest`, garantindo que a lógica interna (hashing, orquestração, transformações) funcione isoladamente.
 3.  **Functional Testing**: O CI sobe uma infraestrutura real (Postgres), gera dados de teste sintéticos e executa o pipeline de ponta a ponta para validar a integração e os modelos dbt.
 
-### 8.2. Governança de Testes
-*   **Cobertura de Código**: Mantemos um rigoroso padrão de cobertura superior a **80%** (via `pytest-cov`). O CI bloqueia automaticamente qualquer mudança que reduza a qualidade dos testes.
-*   **Idempotência**: Testes específicos garantem que o reprocessamento do mesmo arquivo não gere duplicidade de dados.
-*   **Data Quality (dbt tests)**: Além do código, os *dados* são testados para garantir unicidade, não-nulidade e integridade referencial entre as tabelas.
+### 8.2. Governança e Métricas de Teste
+*   **Cobertura de Código (80%+ Req)**: Utilizamos `pytest-cov` para medir a abrangência dos testes. O pipeline de CI bloqueia automaticamente qualquer mudança que reduza a cobertura abaixo de 80%. Atualmente, a plataforma mantém **~88% de cobertura**.
+*   **Idempotência**: Testes específicos validam que reprocessar o mesmo arquivo SHA-256 não gera duplicidade na camada `raw`.
+*   **Mocking e Isolamento**: Usamos `pytest-mock` para simular o banco de dados e sistema de arquivos, garantindo testes rápidos que não dependem de infraestrutura externa.
+*   **Data Quality (dbt)**: O estágio final de validação roda `dbt test`, garantindo integridade referencial e unicidade nas camadas de negócio.
+
+### 8.3. Estrutura de Pacote Profissional
+O projeto foi convertido para o padrão moderno de empacotamento Python via `pyproject.toml`. Isso permite:
+*   Instalação editável (`pip install -e .`) para desenvolvimento.
+*   Gestão centralizada de dependências e ferramentas de linting.
+*   Resolução nativa de imports, eliminando erros de `PYTHONPATH`.
 
 ---
 Documentação de Engenharia Sênior — Focada em Design, Implementação e Resiliência.
