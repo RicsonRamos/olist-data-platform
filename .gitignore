@@ -21,7 +21,10 @@ env/
 .pytest_cache/
 .mypy_cache/
 .cache/
+.ruff_cache/
 .ipynb_checkpoints/
+.coverage
+htmlcov/
 
 # =========================
 # Logs & temp files

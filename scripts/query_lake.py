@@ -3,11 +3,12 @@ import os
 import duckdb
 
 # Define path to Silver Lake
-SILVER_DIR = os.path.join(os.path.dirname(__file__), '..', 'data', 'silver')
+SILVER_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "silver")
+
 
 def query_lake():
     print("🦆 Connecting to Silver Lake (Parquet files) via DuckDB...")
-    
+
     # Query multiple parquet files at once
     query = f"""
     SELECT 
@@ -19,13 +20,14 @@ def query_lake():
     GROUP BY 1
     ORDER BY total_revenue DESC
     """
-    
+
     try:
         result = duckdb.query(query).df()
         print("\n📊 Analytical Query Result (from Parquet):")
         print(result)
     except Exception as e:
         print(f"❌ Error querying the lake: {e}")
+
 
 if __name__ == "__main__":
     query_lake()
