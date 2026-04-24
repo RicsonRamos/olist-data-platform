@@ -1,13 +1,5 @@
-with orders as (
-    select * from {{ ref('stg_orders') }}
-),
-
-order_items as (
-    select * from {{ ref('stg_order_items') }}
-),
-
-order_payments as (
-    select * from {{ ref('stg_order_payments') }}
+with sales as (
+    select * from {{ ref('fct_sales') }}
 ),
 
 customers as (
@@ -16,20 +8,18 @@ customers as (
 
 final as (
     select
-        o.order_id as "ID Pedido",
-        o.purchase_at as "Data do Pedido",
-        o.order_status as "Status",
+        s.order_id as "ID Pedido",
+        s.purchase_at as "Data do Pedido",
+        s.order_status as "Status",
         c.customer_city as "Cidade",
         c.customer_state as "Estado",
-        oi.price as "Valor Item",
-        oi.freight_value as "Frete",
-        (oi.price + oi.freight_value) as "Total Bruto",
-        op.payment_type as "Forma de Pagamento",
-        op.payment_installments as "Parcelas"
-    from orders as o
-    inner join order_items as oi on o.order_id = oi.order_id
-    left join order_payments as op on o.order_id = op.order_id
-    left join customers as c on o.customer_id = c.customer_id
+        s.price_amount as "Valor Item",
+        s.freight_amount as "Frete",
+        s.gross_revenue_amount as "Total Bruto",
+        s.payment_type as "Forma de Pagamento",
+        s.payment_installments as "Parcelas"
+    from sales as s
+    left join customers as c on s.customer_id = c.customer_id
 )
 
 select * from final

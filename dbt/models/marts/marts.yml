@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: fct_sales
+    description: "Tabela de fatos central para vendas, contendo a lógica canônica de KPIs."
+    columns:
+      - name: gross_revenue_amount
+        description: "KPI: Receita Bruta Total. Calculado como (Preço do Item + Valor do Frete)."
+        tests:
+          - not_null
+      - name: price_amount
+        description: "Valor líquido do item vendido."
+      - name: freight_amount
+        description: "Custo de frete associado ao item."

@@ -43,15 +43,14 @@ A plataforma evita atualizações completas (Full Refreshes) no Data Warehouse u
 
 ---
 
-## 4. Ciclo de Vida de Execução do Pipeline
+## 4. Ciclo de Vida e Orquestração (DAG)
 
-O orquestrador (run_pipeline.py) executa um DAG sequencial com os seguintes estágios:
+A execução manual foi substituída por um **DAG (Directed Acyclic Graph)** formal utilizando **Prefect 2**, garantindo observabilidade, retentativas automáticas e gestão de dependências:
 
-1. Bootstrap de Infra: Executa o docker compose seguido por um loop de verificação de saúde (healthcheck) do PostgreSQL (30 tentativas).
-2. Fan-out de Ingestão: O worker Python realiza uma única leitura e entrega paralela para Bronze (Arquivo), Silver (Parquet) e Raw (Banco).
-3. Checkpoint de Auditoria: O hash do arquivo de entrada e a contagem de linhas são registrados no esquema de metadados.
-4. Arquivamento: Os arquivos originais são movidos para o armazenamento particionado.
-5. Transformação: O dbt executa os comandos run e test.
+1.  **task_infra**: Garante que o PostgreSQL esteja saudável e pronto para conexões.
+2.  **task_ingestion**: Executa o worker de ingestão incremental (Raw/Bronze/Silver).
+3.  **task_transformations**: Dispara o dbt para processar as camadas Gold e Semantic.
+4.  **task_tests**: Executa testes de qualidade de dados (`dbt test`) para validar as entregas.
 
 ---
 
@@ -84,10 +83,11 @@ O orquestrador (run_pipeline.py) executa um DAG sequencial com os seguintes est�
 
 ## 🛡️ 7. Governança e Camada Semântica
 
-Para garantir que a plataforma seja amigável ao negócio, implementamos princípios de **Analytics Engineering**:
-*   **Abstração de Complexidade**: Os usuários finais nunca acessam o esquema `raw`. Toda a complexidade de limpeza e deduplicação é resolvida nas camadas internas do dbt.
-*   **Contratos de Dados**: A camada `consumption` funciona como um contrato estável. Mesmo que a lógica interna da `staging` mude, as views de consumo permanecem consistentes para o BI.
-*   **Nomenclatura Orientada ao Negócio**: As tabelas de consumo usam termos de negócio (ex: `sales_dashboard` em vez de `order_item_payment_joined`).
+Para evitar discrepâncias de KPIs (como Receita Bruta) entre Metabase e Power BI, implementamos uma **Camada Semântica Centralizada**:
+
+*   **Centralização de Lógica (fct_sales)**: Todos os cálculos de negócio (ex: `gross_revenue_amount`) são definidos uma única vez na tabela de fatos.
+*   **Abstração de Consumo**: As views de dashboard (ex: `view_sales_dashboard`) consomem apenas da camada `marts`, nunca das tabelas `staging`. Isso garante que qualquer mudança na regra de negócio seja refletida instantaneamente em todas as ferramentas de BI.
+*   **Documentação como Código**: As definições de métricas estão versionadas no `marts.yml`, servindo como a "fonte da verdade" técnica para analistas.
 
 ---
 
