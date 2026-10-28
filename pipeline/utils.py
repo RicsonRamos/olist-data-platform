@@ -16,7 +16,7 @@ def get_engine():
     port = os.getenv("POSTGRES_PORT", "5432")
     db = os.getenv("POSTGRES_DB")
 
-    conn_str = f"postgresql://{user}:{password}@{host}:{port}/{db}"
+    conn_str = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}"
     return create_engine(conn_str)
 
 
