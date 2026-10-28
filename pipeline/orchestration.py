@@ -1,5 +1,12 @@
 from prefect import flow, task
-from pipeline.run_pipeline_tasks import start_infra, run_ingestion, run_dbt_transformations, run_dbt_tests
+
+from pipeline.run_pipeline_tasks import (
+    run_dbt_tests,
+    run_dbt_transformations,
+    run_ingestion,
+    start_infra,
+)
+
 
 @task(retries=3, retry_delay_seconds=10)
 def task_infra():

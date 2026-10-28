@@ -1,4 +1,5 @@
 line-length = 88
+extend-exclude = ["notebooks", ".venv", "dbt"]
 
 [lint]
 select = ["E", "F", "B", "I"]
