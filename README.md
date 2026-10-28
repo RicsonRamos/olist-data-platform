@@ -1,14 +1,128 @@
 # Olist E-Commerce Data Platform
 
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![dbt](https://img.shields.io/badge/analytics%20engineering-dbt--postgres-orange.svg)](https://www.getdbt.com/)
-[![Database: PostgreSQL](https://img.shields.io/badge/database-PostgreSQL-336791.svg)](https://www.postgresql.org/)
-[![Docker](https://img.shields.io/badge/container-Docker%20Compose-2496ED.svg)](https://www.docker.com/)
-[![Code Quality: Ruff](https://img.shields.io/badge/lint-Ruff-black.svg)](https://github.com/astral-sh/ruff)
-[![SQL Lint: SQLFluff](https://img.shields.io/badge/sql-SQLFluff-critical.svg)](https://sqlfluff.com/)
+[![Storage: Parquet](https://img.shields.io/badge/lake-Apache%20Parquet-informational.svg)](https://parquet.apache.org/)
+[![Database: PostgreSQL](https://img.shields.io/badge/warehouse-PostgreSQL%2016-336791.svg)](https://www.postgresql.org/)
+[![Transformation: dbt](https://img.shields.io/badge/transform-dbt%20Core-FF694B.svg)](https://www.getdbt.com/)
+[![CI / CD](https://img.shields.io/badge/ci%2fcd-GitHub%20Actions-brightgreen.svg)](https://github.com/RicsonRamos/olist-data-platform/actions)
 [![Dataset: Kaggle](https://img.shields.io/badge/dataset-Olist%20E--Commerce-informational.svg)](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
 
-Plataforma moderna de engenharia analítica e Lakehouse híbrido projetada para transformar dados brutos de transações de e-commerce em fontes auditáveis da verdade, utilizando Python, dbt Core, PostgreSQL e Docker.
+Plataforma moderna de engenharia analítica e Data Lakehouse construída para o processamento robusto, idempotente e governado do conjunto público de transações do e-commerce brasileiro (Olist).
+
+---
+
+## 1. Problema de Negócio e Contexto
+
+Em operações de e-commerce com dezenas de milhares de pedidos diários, dados brutos transacionais frequentemente sofrem com:
+1. **Falta de Idempotência e Duplicações:** Falhas parciais em rotinas de extração geram re-ingestões com dados duplicados, corrompendo métricas críticas de faturamento e volume de pedidos.
+2. **Inconsistência Relacional e Dados Órfãos:** Registros de pedidos sem correspondência de clientes, vendedores ou avaliações, inviabilizando relatórios confiáveis para áreas de negócio.
+3. **Alto Custo Computacional de Consultas:** Consultar arquivos CSV ou bancos transacionais (OLTP) diretamente com queries analíticas complexas degrada os sistemas operacionais e custa caro em nuvem.
+
+O objetivo deste projeto foi implantar uma plataforma de dados corporativa que:
+- Realiza a ingestão controlada de arquivos de origem com auditoria SHA-256 para evitar duplicidade.
+- Estrutura os dados segundo a Arquitetura Medalhão (Bronze, Silver e Gold).
+- Transforma e valida a camada analítica com dbt Core sobre um Data Warehouse PostgreSQL em esquema Star Schema.
+- Automatiza todo o ciclo com esteira de CI/CD 100% conteinerizada.
+
+---
+
+## 2. Processo e Racional das Escolhas Técnicas
+
+### 2.1. Arquitetura Medalhão Híbrida
+- **Bronze (Raw Inbound):** Preservação dos dados originais sem modificações para permitir repropagações futuras (*replayability*).
+- **Silver (Clean Lake em Apache Parquet):** Conversão de formatos textuais para colunar Parquet particionado, com tipagem estrita de datas, geolocalização e monetários, gerando compressão de armazenamento e velocidade em scans.
+- **Gold (Star Schema no Data Warehouse):** Modelagem dimensional formal (`fct_orders`, `fct_order_items`, `dim_customers`, `dim_products`, `dim_sellers`, `dim_date`) implementada via dbt Core, facilitando o consumo por ferramentas de BI e analistas de negócio.
+
+### 2.2. Garantia de Idempotência via Hashing SHA-256
+- **Auditoria de Carga:** Antes de qualquer processamento, o pipeline calcula o hash criptográfico SHA-256 do arquivo e o valida contra a tabela de controle de auditoria de metadados. Lotes previamente processados são bloqueados imediatamente, eliminando duplicidade por re-execuções manuais ou re-tentativas de pipelines.
+
+### 2.3. Governança e Testes Automatizados com dbt
+- **Contratos e Testes de Qualidade:** Configuração de testes estruturais dbt (`unique`, `not_null`, `relationships`) para assegurar que não haja integridade referencial violada entre tabelas de dimensão e fatos.
+- **Padronização SQL com SQLFluff:** Código SQL formatado segundo padrões rigorosos de engenharia analítica.
+
+---
+
+## 3. Resultados Atingidos e Métricas de Validação
+
+### 3.1. Confiabilidade e Governança de Dados
+- **Zero Duplicações Registradas:** Garantia absoluta de unicidade em chaves primárias e de negócio em todos os marts da camada Gold.
+- **100% de Testes dbt Validados:** Validação automatizada de integridade referencial cobrindo todos os relacionamentos entre clientes, pedidos e itens vendidos.
+
+### 3.2. Performance e Qualidade de Código
+- **Esteira de CI/CD Verde:** Workflows de validação contínua (Ruff, Pytest com psycopg3, dbt e Docker) executando e passando com sucesso no GitHub Actions.
+- **Cobertura de Testes de Código:** Testes unitários para utilitários de banco, loaders e hashing de arquivos cobrindo cenários com sucesso e falha.
+
+---
+
+## 4. Arquitetura da Solução e Estrutura
+
+```text
+olist-data-platform/
+├── .github/workflows/          # Esteiras de CI (testes) e CD (build Docker)
+├── dbt/                        # Projeto dbt Core com modelos dimensionais
+│   ├── models/
+│   │   ├── staging/            # Camada Silver (renomeação, casts e limpeza)
+│   │   └── marts/              # Camada Gold (fatos e dimensões no Star Schema)
+│   └── tests/                  # Testes customizados de integridade analítica
+├── pipeline/                   # Código fonte Python do pipeline ETL
+│   ├── download_kaggle.py      # Ingestão programática via kagglehub
+│   ├── utils.py                # Conectores de banco de dados e auditoria de hash
+│   ├── bronze.py               # Ingestão e validação bruta
+│   ├── silver.py               # Conversão para Parquet colunar e deduplicação
+│   ├── gold.py                 # Carga relacional e orquestração do dbt
+│   └── orchestration.py        # Orquestrador do fluxo ponta a ponta
+├── tests/                      # Bateria de testes com pytest
+├── Dockerfile                  # Imagem Docker multi-stage
+├── pyproject.toml              # Dependências e metadados com uv
+└── ruff.toml                   # Parametrização do linter Ruff
+```
+
+---
+
+## 5. Como Executar
+
+### 5.1. Pré-requisitos
+- Python 3.10 ou superior
+- Docker e Docker Compose (para banco de dados PostgreSQL)
+- Gerenciador `uv` ou `pip`
+
+### 5.2. Execução Local com Banco Docker
+
+1. Clone o repositório:
+```bash
+git clone https://github.com/RicsonRamos/olist-data-platform.git
+cd olist-data-platform
+```
+
+2. Crie e ative o ambiente virtual:
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -e ".[dev]"
+```
+
+3. Suba o banco de dados PostgreSQL via Docker Compose:
+```bash
+docker compose up -d postgres
+```
+
+4. Execute a esteira de testes automatizados e o linter:
+```bash
+ruff check .
+pytest
+```
+
+5. Execute o pipeline completo de engenharia de dados:
+```bash
+python -m pipeline.orchestration
+```
+
+6. Execute os testes do dbt:
+```bash
+cd dbt
+dbt deps
+dbt test
+```
 
 ---
 
@@ -19,126 +133,3 @@ Plataforma moderna de engenharia analítica e Lakehouse híbrido projetada para 
 - **LinkedIn:** [linkedin.com/in/ricsonramos](https://www.linkedin.com/in/ricsonramos/)
 - **Kaggle:** [kaggle.com/ricsonramos](https://www.kaggle.com/ricsonramos)
 - **Portfólio:** [ricsonramos.github.io](https://ricsonramos.github.io)
-- **Contato:** ricsonramos@outlook.com
-
----
-
-## Contexto de Negócio e Engenharia
-
-Ambientes transacionais de e-commerce enfrentam desafios críticos de integridade: carregamentos batch redundantes, ausência de idempotência, dados duplicados e métricas financeiras conflitantes entre departamentos.
-
-Esta plataforma foi desenvolvida para estabelecer resiliência operacional e governança técnica:
-1. **Ingestão Idempotente:** Mecanismo baseado em hashing SHA-256 e tabela de controle de auditoria para garantir processamento único e tolerância a falhas.
-2. **Arquitetura Medalhão Estruturada:**
-   - **Inbound / Raw:** Captura e preservação dos arquivos brutos sem perdas.
-   - **Lake (Parquet):** Armazenamento colunar de alta performance para cargas de trabalho de Ciência de Dados.
-   - **Warehouse (Star Schema via dbt):** Transformações em camadas (staging, intermediate e marts dimensionais) no PostgreSQL.
-3. **Auditoria e Confiabilidade:** 100% de rastreabilidade de cada registro desde o mart analítico até o arquivo de origem.
-4. **Governança Automatizada:** Testes unitários com pytest, testes de integridade relacional com dbt, e validação de estilo SQL com SQLFluff integrados ao CI/CD.
-
----
-
-## Dataset Oficial
-
-- **Fonte no Kaggle:** [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) (por Olist)
-- **Volume:** ~100.000 pedidos entre 2016 e 2018 no mercado brasileiro.
-- **Tabelas Principais:** Pedidos (`orders`), itens de pedido (`order_items`), pagamentos (`order_payments`), avaliações (`order_reviews`), clientes (`customers`), produtos (`products`) e vendedores (`sellers`).
-
----
-
-## Estrutura do Repositório
-
-```text
-olist-data-platform/
-├── config/                            # Parâmetros e caminhos de configuração
-├── dbt/                               # Projeto analítico dbt Core
-│   ├── models/
-│   │   ├── staging/                   # Limpeza, tipagem e deduplicação de tabelas fonte
-│   │   ├── intermediate/              # Agregações intermediárias e regras de negócio
-│   │   └── marts/                     # Tabelas fato e dimensão (Star Schema)
-│   └── dbt_project.yml                # Configurações do projeto dbt
-├── infra/                             # Scripts de inicialização e infraestrutura
-├── notebooks/
-│   └── olist_customer_delivery_analytics.ipynb # Notebook executável para o Kaggle
-├── pipeline/                          # Módulos Python de ingestão, auditoria e orquestração
-│   ├── ingestion.py                   # Carga incremental com validação SHA-256
-│   ├── orchestrator.py                # Máquina de estados e execução sequencial
-│   ├── quality.py                     # Asserções de qualidade de dados
-│   └── utils.py                       # Conexões de banco e logging
-├── scripts/                           # Utilitários de consulta e verificação
-├── tests/                             # Testes automatizados com pytest
-├── docker-compose.yml                 # Orquestração do PostgreSQL e Metabase
-├── pyproject.toml                     # Gestão de dependências moderna via uv
-└── requirements.txt                   # Espelho para compatibilidade
-```
-
----
-
-## Como Executar
-
-### Pré-requisitos
-
-Instale o gerenciador [`uv`](https://docs.astral.sh/uv/):
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-### 1. Clonar e Instalar Dependências
-
-```bash
-git clone https://github.com/RicsonRamos/olist-data-platform.git
-cd olist-data-platform
-uv sync --all-groups
-```
-
-### 2. Configurar o Ambiente
-
-```bash
-cp .env.example .env
-```
-
-### 3. Subir a Infraestrutura (PostgreSQL)
-
-```bash
-docker compose up -d postgres
-```
-
-### 4. Download Automático do Dataset Kaggle
-
-Obtenha os arquivos CSV do Olist via `kagglehub` e mova-os para a pasta de ingestão:
-
-```bash
-uv run python -c "import kagglehub, shutil, os, glob; p = kagglehub.dataset_download('olistbr/brazilian-ecommerce'); dest = 'data/landing'; os.makedirs(dest, exist_ok=True); [shutil.copy(f, dest) for f in glob.glob(os.path.join(p, '*.csv'))]; print('Arquivos Olist prontos em data/landing/')"
-```
-
-### 5. Executar o Pipeline de Ingestão e Modelagem dbt
-
-```bash
-# Executa a ingestão incremental com auditoria
-uv run python -m pipeline.run_pipeline
-
-# Executa as transformações dimensionais no dbt
-cd dbt && uv run dbt run && uv run dbt test
-```
-
----
-
-## Testes e Qualidade de Código
-
-```bash
-# Testes unitários com cobertura
-uv run pytest
-
-# Linting com Ruff
-uv run ruff check .
-
-# Linting SQL com SQLFluff
-uv run sqlfluff lint dbt/models/
-```
-
----
-
-## Notebook no Kaggle
-
-Acesse [`notebooks/olist_customer_delivery_analytics.ipynb`](./notebooks/olist_customer_delivery_analytics.ipynb) para executar a análise exploratória, avaliação de prazos de entrega vs. satisfação do cliente (NPS) e segmentação RFM (Recência, Frequência e Valor).
